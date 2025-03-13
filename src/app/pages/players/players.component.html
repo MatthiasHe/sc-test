@@ -1,0 +1,244 @@
+<section class="mb-6">
+  <h2 class="text-3xl mb-3">
+    Add some filters
+  </h2>
+
+  <form
+    [formGroup]="filterForm"
+    class="grid grid-cols-2 items-end justify-between gap-6"
+  >
+    <div class="col-span-1">
+      <label
+        for="name"
+        class="block text-sm font-medium text-gray-700"
+      >
+        Name
+      </label>
+
+      <input
+        type="text"
+        id="name"
+        formControlName="name"
+        class="mt-1 p-2 border border-gray-300 rounded w-full"
+      />
+    </div>
+
+    <div class="col-span-1">
+      <label
+        for="nationality"
+        class="block text-sm font-medium text-gray-700"
+      >
+        Nationality
+      </label>
+
+      <select
+        type="text"
+        id="nationality"
+        formControlName="nationality"
+        class="mt-1 p-2 border border-gray-300 rounded w-full"
+      >
+        @for (nationality of nationalitiesOptions(); track nationality.value) {
+          <option [value]="nationality.value">
+            {{ nationality.label }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <ng-container formArrayName="statsFilters">
+      @for (statFilter of selectedStatsFilters.controls; track statFilter; let i = $index; ) {
+        <div
+          class="col-span-2 grid grid-cols-3 gap-6"
+          [formGroupName]="i"
+        >
+          <div class="col-span-1">
+            <label
+              [for]="'filterValue-' + i"
+              class="block text-sm font-medium text-gray-700"
+            >
+              Stat
+            </label>
+
+            <select
+              type="text"
+              [id]="'filterValue-' + i"
+              formControlName="value"
+              class="mt-1 p-2 border border-gray-300 rounded w-full"
+            >
+              @for (statFilter of getStatFilterOptions(i); track statFilter.value) {
+                <option [value]="statFilter.value">
+                  {{ statFilter.label }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="col-span-1">
+            <label
+              for="min"
+              class="block text-sm font-medium text-gray-700"
+            >
+              Min value
+            </label>
+
+            <input
+              type="number"
+              id="min"
+              formControlName="min"
+              class="mt-1 p-2 border border-gray-300 rounded w-full"
+            />
+          </div>
+
+          <div class="col-span-1">
+            <label
+              for="max"
+              class="block text-sm font-medium text-gray-700"
+            >
+              Max value
+            </label>
+
+            <input
+              type="number"
+              id="max"
+              formControlName="max"
+              class="mt-1 p-2 border border-gray-300 rounded w-full"
+            />
+          </div>
+        </div>
+      }
+    </ng-container>
+
+    <div class="col-span-2 gap-2 flex flex-col">
+      @if (!!getStatFilterOptions().length) {
+        <button
+          type="button"
+          (click)="addFilter()"
+          class="col-span-2 border border-blue-500 text-blue-500 font-medium py-2 px-4 rounded "
+        >
+          Add stat filter
+        </button>
+      }
+
+      <button
+        type="button"
+        (click)="applyFilter()"
+        class="col-span-2 bg-blue-500 text-white font-medium py-2 px-4 rounded hover:bg-blue-600"
+      >
+        Apply
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="flex flex-row mb-6">
+  <div class="w-full mb-6 h-[400px]">
+    <cdk-virtual-scroll-viewport
+      itemSize="50"
+      class="#scrollViewport h-[400px] block overflow-y-auto"
+      (scrolledIndexChange)="onScroll($event)"
+    >
+      <table class="border-collapse border border-gray-300 w-full">
+        <thead>
+          <tr class="bg-gray-100 height-[50px]">
+            <th
+              [style.top]="inverseOfTranslation"
+              class="sticky z-20 border border-gray-300 p-2 bg-gray-100"
+            ></th>
+
+            @for (column of tableColumns; track column.property) {
+              @if (isDisplayedColumn(column.property)) {
+                <th
+                  (click)="setOrderBy(column.property)"
+                  [style.top]="inverseOfTranslation"
+                  class="sticky z-20 border border-gray-300 p-2 text-left bg-gray-100 cursor-pointer"
+                >
+                  {{ column.label }}
+
+                  @if (orderBy() === column.property) {
+                    <span>▲</span>
+                  } @else if (orderBy() === '-' + column.property) {
+                    <span>▼</span>
+                  } @else {
+                    <span>▲▼</span>
+                  }
+                </th>
+              }
+            }
+          </tr>
+        </thead>
+
+        <tbody>
+          @if (players().length === 0) {
+            <tr>
+              <td
+                colSpan="5"
+                class="p-4"
+              >
+                <div class="flex items-center justify-center">
+                  No results
+                </div>
+              </td>
+            </tr>
+          }
+
+          <tr
+            class="height-[50px] w-full"
+            *cdkVirtualFor="let player of players()"
+          >
+            <td class="border sticky left-0 z-10 border-gray-300 bg-white p-2">
+              <button
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                (click)="displayPlayerInfo(player)"
+              >
+                Visualize all stats
+              </button>
+            </td>
+
+            @for (column of tableColumns; track column.property) {
+              @if (isDisplayedColumn(column.property)) {
+                <td class="border border-gray-300 p-2">
+                  @if (column.property === 'nationalities') {
+                    {{ getDisplayedNationalities(player) }}
+                  } @else {
+                    {{ player[column.property] }}
+                  }
+                </td>
+              }
+            }
+          </tr>
+        </tbody>
+      </table>
+    </cdk-virtual-scroll-viewport>
+  </div>
+</section>
+
+<dialog
+  id="playerDialog"
+  class="absolute top-1/2 left-1/2 w-[30vw] rounded-[10px] transform -translate-x-1/2 -translate-y-1/2 shadow-2xl"
+>
+  @if (!!selectedPlayer()) {
+    <dl class="p-6 flex flex-row items-center">
+      <dl>
+        @for (column of tableColumns; track column.property) {
+          <div class="flex gap-2">
+            <dt class="font-bold">
+              {{ column.label }}
+            </dt>
+
+            <dd>
+              {{ selectedPlayer()![column.property] }}
+            </dd>
+          </div>
+        }
+      </dl>
+    </dl>
+  }
+
+  <button
+    type="button"
+    class="absolute top-0 right-0 m-4"
+    (click)="closePlayerInfo()"
+  >
+    X
+  </button>
+</dialog>

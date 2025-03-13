@@ -1,0 +1,241 @@
+@if (selectedPlayers().length > 0) {
+  <section class="mb-6">
+    <h2 class="text-3xl mb-3">
+      Selected players
+    </h2>
+
+    <div class="flex flex-wrap items-center gap-2 mt-4 mb-6">
+      @for (player of selectedPlayers(); track player.id) {
+        <div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2">
+          <span>
+            {{ player.first_name }} {{ player.last_name }}
+          </span>
+
+          <button
+            class="bg-blue-700 hover:bg-blue-900 text-white rounded-full w-5 h-5 flex items-center justify-center leading-none"
+            (click)="removePlayerFromSelectedList(player)"
+          >
+            &times;
+          </button>
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<section class="mb-6">
+  <h2 class="text-3xl mb-3">
+    Select a stat
+  </h2>
+
+  <div class="flex space-x-8 space-y-8 flex-wrap">
+    @for (option of playerStatsOptions(); track option.value) {
+      <label>
+        <input
+          type="radio"
+          name="playerStat"
+          [value]="option.value"
+          [ngModel]="selectedStatProperty"
+          (ngModelChange)="onSelectedStatPropertyChange($event)"
+          class="hidden"
+        />
+
+        <span
+          class="cursor-pointer px-4 py-2 border rounded font-medium text-sm"
+          [class.bg-blue-500]="selectedStatProperty() === option.value"
+          [class.text-white]="selectedStatProperty() === option.value"
+          [class.bg-gray-100]="selectedStatProperty() !== option.value"
+          [class.text-gray-700]="selectedStatProperty() !== option.value"
+        >
+          {{ option.label }}
+        </span>
+      </label>
+    }
+  </div>
+</section>
+
+<section class="mb-6">
+  <h2 class="text-3xl mb-3">
+    Add some filters
+  </h2>
+
+  <form
+    [formGroup]="filterForm"
+    class="mb-6 grid grid-cols-9 items-end justify-between gap-2"
+  >
+    <div class="col-span-2">
+      <label
+        for="name"
+        class="block text-sm font-medium text-gray-700"
+      >
+        Name
+      </label>
+
+      <input
+        type="text"
+        id="name"
+        formControlName="name"
+        class="mt-1 p-2 border border-gray-300 rounded w-full"
+        placeholder=""
+      />
+    </div>
+
+    <div class="col-span-2">
+      <label
+        for="nationality"
+        class="block text-sm font-medium text-gray-700"
+      >
+        Nationality
+      </label>
+
+      <select
+        type="text"
+        id="nationality"
+        formControlName="nationality"
+        class="mt-1 p-2 border border-gray-300 rounded w-full"
+      >
+        @for (nationality of nationalitiesOptions(); track nationality.value) {
+          <option [value]="nationality.value">
+            {{ nationality.label }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="col-span-2">
+      <label
+        for="min"
+        class="block text-sm font-medium text-gray-700"
+      >
+        Min value
+      </label>
+
+      <input
+        type="number"
+        id="min"
+        formControlName="min"
+        class="mt-1 p-2 border border-gray-300 rounded w-full"
+      />
+    </div>
+
+    <div class="col-span-2">
+      <label
+        for="max"
+        class="block text-sm font-medium text-gray-700"
+      >
+        Max value
+      </label>
+
+      <input
+        type="number"
+        id="max"
+        formControlName="max"
+        class="mt-1 p-2 border border-gray-300 rounded w-full"
+      />
+    </div>
+
+    <button
+      type="button"
+      (click)="applyFilter()"
+      class="col-span-1 bg-blue-500 text-white font-medium py-2 px-4 rounded hover:bg-blue-600"
+    >
+      Apply
+    </button>
+  </form>
+</section>
+
+<section class="mb-6">
+  <h2 class="text-3xl mb-3">
+    Results
+  </h2>
+
+  <div class="w-full mb-6 h-[400px] relative">
+    <cdk-virtual-scroll-viewport
+      itemSize="60"
+      class="#scrollViewport h-[400px] block overflow-y-auto"
+      (scrolledIndexChange)="onScroll($event)"
+    >
+      <table class="border-collapse border table-fixed border-gray-300 w-full">
+        <thead>
+          <tr class="bg-gray-100 height-[60px]">
+            <th
+              [style.top]="inverseOfTranslation"
+              class="sticky z-20 border border-gray-300 p-2 bg-gray-100"
+            ></th>
+
+            @for (column of tableColumns; track column.property) {
+              @if (isDisplayedColumn(column.property)) {
+                <th
+                  (click)="setOrderBy(column.property)"
+                  [style.top]="inverseOfTranslation"
+                  class="sticky z-20 border border-gray-300 p-2 text-left bg-gray-100 cursor-pointer"
+                >
+                  {{ column.label }}
+
+                  @if (orderBy() === column.property) {
+                    <span>▲</span>
+                  } @else if (orderBy() === '-' + column.property) {
+                    <span>▼</span>
+                  } @else {
+                   <span>▲▼</span>
+                  }
+                </th>
+              }
+            }
+          </tr>
+        </thead>
+
+        <tbody>
+          @if (players().length === 0) {
+            <tr>
+              <td
+                colSpan="5"
+                class="p-4"
+              >
+                <div class="flex items-center justify-center">
+                  No results
+                </div>
+              </td>
+            </tr>
+          }
+
+          <tr
+            class="height-[60px] w-full"
+            *cdkVirtualFor="let player of players()"
+          >
+            <td class="border sticky left-0 z-10 border-gray-300 bg-white p-2">
+              <button
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                [disabled]="isPlayerInList(player)"
+                (click)="addPlayerToSelectedList(player)"
+              >
+                Add to the pool
+              </button>
+            </td>
+            <td class="border border-gray-300 p-2">{{ player.first_name }}</td>
+
+            <td class="border border-gray-300 p-2">{{ player.last_name }}</td>
+
+            <td class="border border-gray-300 p-2">
+              {{ getDisplayedNationalities(player) }}
+            </td>
+
+            @for (column of tableColumns; track column.property) {
+              @if (column.property === selectedStatProperty()) {
+                <td class="border border-gray-300 p-2">
+                  {{ player[selectedStatProperty()] }}
+                </td>
+              }
+            }
+          </tr>
+        </tbody>
+      </table>
+    </cdk-virtual-scroll-viewport>
+  </div>
+</section>
+
+<canvas
+  id="chart"
+  class="w-full"
+  [ngClass]="{ 'h-0': !chart() || selectedPlayers().length < 2 }"
+></canvas>
